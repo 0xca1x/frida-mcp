@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/0xca1x/frida-mcp"
+Homepage = "https://github.com/fuzzmind/frida-mcp"
 
 [project.scripts]
 fuzzmind-frida-mcp = "fuzzmind_frida_mcp.server:main"
