@@ -1,0 +1,57 @@
+[project]
+name = "fuzzmind-frida-mcp"
+version = "0.1.0"
+description = "Frida MCP server for authorized dynamic analysis and application security research"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "FuzzMind", email = "contact@fuzzmind.io"}]
+keywords = ["frida", "mcp", "reverse-engineering", "security", "dynamic-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Security",
+    "Topic :: Software Development :: Debuggers",
+]
+dependencies = [
+    "mcp>=1.2",
+    "frida>=17.9.3,<18",
+    "frida-tools>=14.8.1,<15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "build>=1.2",
+    "twine>=5.0",
+    "bandit>=1.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/0xca1x/frida-mcp"
+
+[project.scripts]
+fuzzmind-frida-mcp = "fuzzmind_frida_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = [
+    "/uv.lock",
+    "/src/**/__pycache__",
+    "/src/**/*.pyc",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fuzzmind_frida_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "real_frida: tests that attach to a real local process and require OS debugging permission",
+    "android_emulator: tests that boot/use an Android emulator, adb root, and frida-server",
+    "ios_simulator: tests that boot/use an iOS Simulator and verify attach permission boundaries",
+    "docker_vm: tests that create Docker Linux containers to verify Frida attach permissions",
+    "release_audit: release-blocking static checks that document known gaps until fixed",
+]

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  real-frida-linux:
+    name: Real Frida attach (Docker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run real attach smoke test
+        shell: bash
+        run: |
+          docker run --rm \
+            --cap-add=SYS_PTRACE \
+            --security-opt seccomp=unconfined \
+            -v "$GITHUB_WORKSPACE":/workspace \
+            -w /workspace \
+            ubuntu:24.04 \
+            bash -lc '
+              set -eux
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends ca-certificates build-essential git python3 python3-venv python3-pip procps
+              python3 -m pip install --break-system-packages uv
+              cat /proc/sys/kernel/yama/ptrace_scope || true
+              export UV_PROJECT_ENVIRONMENT=/tmp/frida-mcp-venv
+              export UV_CACHE_DIR=/tmp/uv-cache
+              FUZZMIND_FRIDA_REAL_ATTACH=1 uv run --extra dev pytest -m real_frida -rx
+            '
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Run Bandit medium/high scan
+        run: uv run --python 3.11 --extra dev bandit -r src --severity-level medium
+
+  publish:
+    name: Publish to PyPI
+    needs: [real-frida-linux, security]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build distributions
+        run: uv run --python 3.11 --extra dev python -m build
+
+      - name: Check distributions
+        run: uv run --python 3.11 --extra dev twine check dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
